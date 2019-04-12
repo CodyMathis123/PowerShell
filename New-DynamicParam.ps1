@@ -1,4 +1,4 @@
-﻿Function New-DynamicParam {
+Function New-DynamicParam {
 <#
     .SYNOPSIS
         Helper function to simplify creating dynamic parameters
@@ -40,6 +40,7 @@
 
     .PARAMETER ParameterSetName
         If specified, set the ParameterSet attribute for this dynamic parameter
+        You can provide a [string[]] array of parameter sets if you need this in multiple
 
     .PARAMETER Position
         If specified, set the Position attribute for this dynamic parameter
@@ -164,7 +165,7 @@ param(
     [switch]
     $Mandatory,
     
-    [string]
+    [string[]]
     $ParameterSetName="__AllParameterSets",
     
     [int]
@@ -188,41 +189,37 @@ param(
 )
     #Create attribute object, add attributes, add to collection   
         $ParamAttr = New-Object System.Management.Automation.ParameterAttribute
-        $ParamAttr.ParameterSetName = $ParameterSetName
-        if($mandatory)
-        {
-            $ParamAttr.Mandatory = $True
-        }
-        if($Position -ne $null)
-        {
-            $ParamAttr.Position=$Position
-        }
-        if($ValueFromPipelineByPropertyName)
-        {
-            $ParamAttr.ValueFromPipelineByPropertyName = $True
-        }
-        if($HelpMessage)
-        {
-            $ParamAttr.HelpMessage = $HelpMessage
-        }
- 
-        $AttributeCollection = New-Object 'Collections.ObjectModel.Collection[System.Attribute]'
-        $AttributeCollection.Add($ParamAttr)
-    
-    #param validation set if specified
-        if($ValidateSet)
-        {
-            $ParamOptions = New-Object System.Management.Automation.ValidateSetAttribute -ArgumentList $ValidateSet
-            $AttributeCollection.Add($ParamOptions)
-        }
+        
+            foreach ($Set in $ParameterSetName) {
+                $ParamAttr = New-Object System.Management.Automation.ParameterAttribute
+                $ParamAttr.ParameterSetName = $Set
+                if ($mandatory) {
+                    $ParamAttr.Mandatory = $True
+                }
+                if ($null -ne $Position) {
+                    $ParamAttr.Position = $Position
+                }
+                if ($ValueFromPipelineByPropertyName) {
+                    $ParamAttr.ValueFromPipelineByPropertyName = $True
+                }
+                if ($HelpMessage) {
+                    $ParamAttr.HelpMessage = $HelpMessage
+                }
+                 
+                $AttributeCollection.Add($ParamAttr)    
+                #param validation set if specified
+                if ($ValidateSet) {
+                    $ParamOptions = New-Object System.Management.Automation.ValidateSetAttribute -ArgumentList $ValidateSet
+                    $AttributeCollection.Add($ParamOptions)
+                }
+            
+                #Aliases if specified
+                if ($Alias.count -gt 0) {
+                    $ParamAlias = New-Object System.Management.Automation.AliasAttribute -ArgumentList $Alias
+                    $AttributeCollection.Add($ParamAlias)
+                }
+            }
 
-    #Aliases if specified
-        if($Alias.count -gt 0) {
-            $ParamAlias = New-Object System.Management.Automation.AliasAttribute -ArgumentList $Alias
-            $AttributeCollection.Add($ParamAlias)
-        }
-
- 
     #Create the dynamic parameter
         $Parameter = New-Object -TypeName System.Management.Automation.RuntimeDefinedParameter -ArgumentList @($Name, $Type, $AttributeCollection)
     
